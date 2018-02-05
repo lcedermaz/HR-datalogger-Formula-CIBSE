@@ -160,7 +160,9 @@ return retorno;
 
 void loop() {
 
-
+  sensors1.requestTemperatures();  // Se envía el comando para leer la temperatura
+  sensors2.requestTemperatures();  // Se envía el comando para leer la temperatura
+  
 //------------------------------LLAMAMOS A LAS FUNCIONES
 
   unsigned long currentMillis_2 = millis();   // Conteo de tiempo para la interrupción
@@ -250,7 +252,7 @@ if(currentMillis_1 - previousMillis_1 >= interval_1) {
         Serial.print(F(" TH:"));
         Serial.print(THumedo);       
         Serial.print(F(" HR:"));
-        Serial.println(HR);            
+        Serial.println(HR);         
   } else {
     // if the file didn't open, print an error:
     Serial.println("Error al abrir el archivo");
@@ -307,15 +309,15 @@ lcd.print(fprint(minute)); //imprime minutos
 //------------------------------bulbo seco
   float TemperaturaSeco ()
                                  {                                     
-      sensors1.requestTemperatures();   //Se envía el comando para leer la temperatura
-      float TSeco= sensors1.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
+      //sensors1.requestTemperatures();   //Se envía el comando para leer la temperatura
+      TSeco= sensors1.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
   }
 
 //------------------------------bulbo húmedo
   float TemperaturaHumedo ()
                                  {                                     
-      sensors2.requestTemperatures();   //Se envía el comando para leer la temperatura
-      float THumedo= sensors2.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
+      //sensors2.requestTemperatures();   //Se envía el comando para leer la temperatura
+      THumedo= sensors2.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
 }
 
 //------------------------------Calculo Humedad Relativa
