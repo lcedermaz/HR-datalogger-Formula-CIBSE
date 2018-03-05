@@ -80,7 +80,7 @@ const long interval = 2000 ;
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Datalogger)
 
 unsigned long previousMillis_1 = 0 ;
-const long interval_1 = 5000;
+const long interval_1 = 1800000; // Equivale a 30 min de grabación
 
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Cálculos)
 
@@ -135,27 +135,27 @@ void setup()
   }
 }
 
-    // -- Conversor BCD ==> DECIMAL --
-    byte bcdToDec(byte val)
-    {
-      return ( (val / 16 * 10) + (val % 16) );
-    }
+// -- Conversor BCD ==> DECIMAL --
+byte bcdToDec(byte val)
+{
+  return ( (val / 16 * 10) + (val % 16) );
+}
 
-    // -- Imprime con formato de 2 dígitos
-    String fprint (int dato)
-    {
-      String retorno = String(dato);
-      if (retorno.length() < 2)
-        retorno = "0" + retorno;
-      return retorno;
+// -- Imprime con formato de 2 dígitos
+String fprint (int dato)
+{
+  String retorno = String(dato);
+  if (retorno.length() < 2)
+    retorno = "0" + retorno;
+  return retorno;
 
-    // Configuración para que inicie promedio
-  
-    for (int thisReadingBS = 0; thisReadingBS < numReadingsBS; thisReadingBS++)  // Promedio Bulbo Seco
-      readingsBS[thisReadingBS] = 0;
-    for (int thisReadingBH = 0; thisReadingBH < numReadingsBH; thisReadingBH++)  // Promedio Bulbo Humedo
-      readingsBH[thisReadingBH] = 0;
-  }
+  // Configuración para que inicie promedio
+
+  for (int thisReadingBS = 0; thisReadingBS < numReadingsBS; thisReadingBS++)  // Promedio Bulbo Seco
+    readingsBS[thisReadingBS] = 0;
+  for (int thisReadingBH = 0; thisReadingBH < numReadingsBH; thisReadingBH++)  // Promedio Bulbo Humedo
+    readingsBH[thisReadingBH] = 0;
+}
 
 void loop() {
 
@@ -198,7 +198,7 @@ void loop() {
 
     //------------------------------GRABAMOS DATOS EN LA SD
 
-    unsigned long currentMillis_1 = millis();   // Conteo de timepo para la interrupción
+    unsigned long currentMillis_1 = millis();   // Iniciamos el tiempo de grabacion
 
     if (currentMillis_1 - previousMillis_1 >= interval_1) {
       previousMillis_1 = currentMillis_1;
