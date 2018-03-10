@@ -262,7 +262,7 @@ void loop() {
 
     if (TSeco < 50) {       // si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
       lcd.setCursor(0, 0);
-      lcd.print(TSeco);
+      lcd.print(TSeco,1);  // EL ",1" sirve para q deje una cifra después de la coma
       lcd.print("Ts ");
     } else {
       lcd.setCursor(0, 0);
@@ -273,7 +273,7 @@ void loop() {
 
     if (THumedo < 50) {     //si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
       lcd.setCursor(0, 1);
-      lcd.print(THumedo);
+      lcd.print(THumedo,1);
       lcd.print("Th ");
     } else {
       lcd.setCursor(0, 1);
