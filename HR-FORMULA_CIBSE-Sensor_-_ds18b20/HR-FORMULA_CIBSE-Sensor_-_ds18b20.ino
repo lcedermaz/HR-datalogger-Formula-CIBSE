@@ -19,6 +19,10 @@ File myFile;
 // -- Variables Globales--
 byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 
+//--------------------LED indicador de Grabacion
+
+#define LED_GRABACION 8    // DEFINIR EL PIN !!!!!!!!!!!
+
 //--------------------RTC
 #include "RTClib.h"
 RTC_DS1307 RTC;
@@ -107,6 +111,8 @@ void setup()
   lcd.clear();
   lcd.backlight();// Indicamos medidas de LCD
   Wire.begin(); //configura el bus I2C estableciendo arduino como MASTER
+
+  pinMode(LED_GRABACION, OUTPUT); // Led de estado de grabación
 
   sensors1.begin();   //Se inicia el sensor 1
   sensors2.begin();   //Se inicia el sensor 2
@@ -249,7 +255,12 @@ void loop() {
         // Sino puede leer, envía el mensaje por serial
         Serial.println("Error al abrir el archivo");
       }
+      digitalWrite(LED_GRABACION, HIGH); // Led indicador de grabación
+    } else {
+      digitalWrite(LED_GRABACION, LOW);
     }
+
+
     //------------------------------MOSTRAR HORA
 
     lcd.setCursor(9, 0);
@@ -262,7 +273,7 @@ void loop() {
 
     if (TSeco < 50) {       // si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
       lcd.setCursor(0, 0);
-      lcd.print(TSeco,1);  // EL ",1" sirve para q deje una cifra después de la coma
+      lcd.print(TSeco, 1); // EL ",1" sirve para q deje una cifra después de la coma
       lcd.print("Ts ");
     } else {
       lcd.setCursor(0, 0);
@@ -273,7 +284,7 @@ void loop() {
 
     if (THumedo < 50) {     //si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
       lcd.setCursor(0, 1);
-      lcd.print(THumedo,1);
+      lcd.print(THumedo, 1);
       lcd.print("Th ");
     } else {
       lcd.setCursor(0, 1);
