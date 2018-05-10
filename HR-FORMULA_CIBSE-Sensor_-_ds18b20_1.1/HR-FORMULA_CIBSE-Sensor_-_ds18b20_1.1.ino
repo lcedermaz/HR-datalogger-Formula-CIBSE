@@ -1,5 +1,5 @@
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 16, 2); //Direccion de LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2); //Direccion de LCD, Pines A4 (SDA) y A5 (SCL)
 
 #include <Wire.h>
 #include <math.h>
@@ -18,6 +18,11 @@ File myFile;
 
 // -- Variables Globales--
 byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+
+//--------------------LED indicador de Grabacion
+
+#define LED_GRABACION 8    // Funciona solo con el 8, 2 y 3 no responde
+int ledState = LOW ; // Estado inicial para el parpadeo del led indicador de grabación
 
 //--------------------RTC
 #include "RTClib.h"
@@ -75,7 +80,7 @@ float HR;
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Display)
 
 unsigned long previousMillis = 0;
-const long interval = 2000 ;
+const long interval = 50 ;// Se achico el tiempo para que se pueda ver el segundero del RTC
 
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Datalogger)
 
@@ -86,6 +91,11 @@ const long interval_1 = 5000;
 
 unsigned long previousMillis_2 = 0;
 const long interval_2 = 10 ;
+
+//------------------------------SETEO DE TIEMPOS DE REFRESCO (Bink LED)
+
+unsigned long previousMillis_3 = 0;
+const long interval_3 = 250 ;
 
 //------------------------------HUMEDAD RELATIVA
 
@@ -103,15 +113,50 @@ float pv;
 
 void setup()
 {
+  lcd.clear();
   lcd.init();
   lcd.begin(16, 2);
-  lcd.clear();
   lcd.backlight();// Indicamos medidas de LCD
   Wire.begin(); //configura el bus I2C estableciendo arduino como MASTER
+
+  //----Mensaje de Bienvenida----//
+  lcd.setCursor(4, 0);
+  lcd.print("LAMyEN");
+
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando.");
+  delay(1000);
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando..");
+  delay(1000);
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando...");
+  delay(1000);
+  lcd.clear();
+
+  lcd.setCursor(4, 0);
+  lcd.print("LAMyEN");
+
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando.");
+  delay(1000);
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando..");
+  delay(1000);
+  lcd.setCursor(2, 1);
+  lcd.print(" Cargando...");
+  delay(100);
+  lcd.clear();
+
+  //----Iniciamoes los sensores
 
   sensors1.begin();   //Se inicia el sensor 1
   sensors2.begin();   //Se inicia el sensor 2
 
+  //----Configuramos LED indicador
+
+  pinMode(LED_GRABACION, OUTPUT) ;
+  digitalWrite(LED_GRABACION, LOW);
 
   // -------- CONFIG - SD
 
@@ -161,126 +206,137 @@ String fprint (int dato)
 
 void loop() {
 
+  //------------------------------LED INDICADOR DE ESTADO MICROSD
+
+  if (!SD.exists("datalog.csv")) { // Si el archivo está, queda encendido el led, sino titila
+    GrabacionERROR ();
+  } else {
+    digitalWrite (LED_GRABACION, HIGH);
+  }
+  //------------------------------INICIAMOS LOS SENSORES
+
   sensors1.requestTemperatures();  // Se inicia el sensor 1
   sensors2.requestTemperatures();  // Se inicia el sensor 2
 
-  //------------------------------LLAMAMOS A LAS FUNCIONES
+  //------------------------------COMIENZO DE LAS FUNCIONES
 
-  unsigned long currentMillis_2 = millis();   // Conteo de tiempo para la interrupción
+  //------------------------------CALCULO HUMEDAD RELATIVA
+
+  unsigned long currentMillis_2 = millis();
 
   if (currentMillis_2 - previousMillis_2 >= interval_2) {
     previousMillis_2 = currentMillis_2;
     HumedadRelativa ();
   }
 
-  //------------------------------MOSTRAMOS EN DISPLAY
+  //------------------------------DISPLAY
 
-  unsigned long currentMillis = millis();   // Conteo de tiempo para la interrupción
+  unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     LCD_display ();
   }
 
-  //------------------------------GRABAMOS DATOS EN LA SD
+  //------------------------------MICROSD
 
-  unsigned long currentMillis_1 = millis();   // Conteo de timepo para la interrupción
+  unsigned long currentMillis_1 = millis();
 
   if (currentMillis_1 - previousMillis_1 >= interval_1) {
     previousMillis_1 = currentMillis_1;
     microSD ();
   }
 }
- 
-    //-------------Funciones-------------//
 
-  void HumedadRelativa () {
+//-------------Funciones-------------//
 
-    //------------------------------Calculo Humedad Relativa--------------------------
+void HumedadRelativa () {
 
-    TSeco = sensors1.getTempCByIndex(0);    // Sensor Bulbo Seco
-    THumedo = sensors2.getTempCByIndex(0);  // Sensor Bulbo Humedo
+  //------------------------------Calculo Humedad Relativa--------------------------//
 
-    // FORMULA CIBSE-Facilitada por Marcos
+  TSeco = sensors1.getTempCByIndex(0);    // Sensor Bulbo Seco
+  THumedo = sensors2.getTempCByIndex(0);  // Sensor Bulbo Humedo
 
-    // Public Function HRpsi(ByVal tBS As Double, ByVal tBH As Double, ByVal p As Double, ByVal Kpsi As Double)
-    // HRpsi = Humedad Relativa, calculada con método psicrométrico
-    // pv = Presión parcial de vapor
-    // Kpsi = Constante psicrométrica
-    // Ejemplos
-    //     6.66e-4     Sling - CIBSE Guide C 2007 (1.9) -> ********Se opta por este método********
-    //     7.99e-4     Screen - CIBSE Guide C 2007 (1.10)
+  // FORMULA CIBSE-Facilitada por Marcos
 
-    const float p = 101325; // Valor de la presión atmosférica, obtenido del excel. Promedio anual de la provincia de Santa Fe (Capital)
-    const float Kpsi = 6.66e-4; // Metodo Sling, constante
+  // Public Function HRpsi(ByVal tBS As Double, ByVal tBH As Double, ByVal p As Double, ByVal Kpsi As Double)
+  // HRpsi = Humedad Relativa, calculada con método psicrométrico
+  // pv = Presión parcial de vapor
+  // Kpsi = Constante psicrométrica
+  // Ejemplos
+  //     6.66e-4     Sling - CIBSE Guide C 2007 (1.9) -> ********Se opta por este método********
+  //     7.99e-4     Screen - CIBSE Guide C 2007 (1.10)
 
-    //-------CONSTANTES
+  const float p = 101325; // Valor de la presión atmosférica, obtenido del excel. Promedio anual de la provincia de Santa Fe (Capital)
+  const float Kpsi = 6.66e-4; // Metodo Sling, constante
 
-    const float C8 = -5800.2206;
-    const float C9 = 1.3914493;
-    const float C10 = -0.048640239;
-    const float C11 = 0.000041764768;
-    const float C12 = -0.000000014452093;
-    const float C13 = 6.5459673;
+  //-------CONSTANTES
 
-    //-------FORMULA PARA EL CÁLCULO (CIBSE)
+  const float C8 = -5800.2206;
+  const float C9 = 1.3914493;
+  const float C10 = -0.048640239;
+  const float C11 = 0.000041764768;
+  const float C12 = -0.000000014452093;
+  const float C13 = 6.5459673;
 
-    TSecoK = TSeco + 273.15; // ok
-    THumedoK = THumedo + 273.15;// ok
+  //-------FORMULA PARA EL CÁLCULO (CIBSE)
 
-    pwsTSeco = exp(C8 / TSecoK + C9 + C10 * TSecoK + C11 * (TSecoK * TSecoK) + C12 * (TSecoK * TSecoK * TSecoK) + C13 * log(TSecoK)); // ok
-    pwsTHumedo = exp(C8 / THumedoK + C9 + C10 * THumedoK + C11 * (THumedoK * THumedoK) + C12 * (THumedoK * THumedoK * THumedoK) + C13 * log(THumedoK)); //ok
-    pv = pwsTHumedo - (Kpsi) * p * (TSecoK - THumedoK);
-    HR = 100 * (pv / pwsTSeco);
+  TSecoK = TSeco + 273.15; // ok
+  THumedoK = THumedo + 273.15;// ok
 
+  pwsTSeco = exp(C8 / TSecoK + C9 + C10 * TSecoK + C11 * (TSecoK * TSecoK) + C12 * (TSecoK * TSecoK * TSecoK) + C13 * log(TSecoK)); // ok
+  pwsTHumedo = exp(C8 / THumedoK + C9 + C10 * THumedoK + C11 * (THumedoK * THumedoK) + C12 * (THumedoK * THumedoK * THumedoK) + C13 * log(THumedoK)); //ok
+  pv = pwsTHumedo - (Kpsi) * p * (TSecoK - THumedoK);
+  HR = 100 * (pv / pwsTSeco);
+
+}
+
+void LCD_display () {
+
+  //------------------------------MOSTRAR HORA
+
+  lcd.setCursor(9, 0);
+  lcd.print(fprint(hour)); //imprime hora
+  lcd.print(':');
+  lcd.print(fprint(minute)); //imprime minutos
+
+  //------------------------------MOSTRAR VALORES TERMISTOR
+  //------------------------------bulbo seco
+
+  if (TSeco < 50) {       // si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
+    lcd.setCursor(0, 0);
+    lcd.print(TSeco);
+    lcd.print("Ts ");
+  } else {
+    lcd.setCursor(0, 0);
+    lcd.print("OL");
+    lcd.print("Ts ");
   }
+  //------------------------------bulbo húmedo
 
-  void LCD_display () {
-
-    //------------------------------MOSTRAR HORA
-
-    lcd.setCursor(9, 0);
-    lcd.print(fprint(hour)); //imprime hora
-    lcd.print(':');
-    lcd.print(fprint(minute)); //imprime minutos
-
-    //------------------------------MOSTRAR VALORES TERMISTOR
-    //------------------------------bulbo seco
-
-    if (TSeco < 50) {       // si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
-      lcd.setCursor(0, 0);
-      lcd.print(TSeco);
-      lcd.print("Ts ");
-    } else {
-      lcd.setCursor(0, 0);
-      lcd.print("OL");
-      lcd.print("Ts ");
-    }
-    //------------------------------bulbo húmedo
-
-    if (THumedo < 50) {     //si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
-      lcd.setCursor(0, 1);
-      lcd.print(THumedo);
-      lcd.print("Th ");
-    } else {
-      lcd.setCursor(0, 1);
-      lcd.print("OL");
-      lcd.print("Th ");
-    }
-    //------------------------------humedad Relativa
-
-    if (HR < 100) {
-      lcd.setCursor(8, 1);
-      lcd.print(HR); // con el floor deja una décima para visualizar (****floor (HR*10)/10) (****
-      lcd.setCursor(12, 1);
-      lcd.print(" HR%");
-    } else {     // Con este IF, pone a 100 cuando la humedad es mayor a 100% (Cuando el cálculo bate fruta en realidad)
-      lcd.setCursor(8, 1);
-      lcd.print("100.0");
-      lcd.setCursor(13, 1);
-      lcd.print("HR%");
-    }
+  if (THumedo < 50) {     //si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
+    lcd.setCursor(0, 1);
+    lcd.print(THumedo);
+    lcd.print("Th ");
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("OL");
+    lcd.print("Th ");
   }
+  //------------------------------humedad Relativa
+
+  if (HR < 100) {
+    lcd.setCursor(8, 1);
+    lcd.print(HR); // con el floor deja una décima para visualizar (****floor (HR*10)/10) (****
+    lcd.setCursor(12, 1);
+    lcd.print(" HR%");
+  } else {     // Con este IF, pone a 100 cuando la humedad es mayor a 100% (Cuando el cálculo bate fruta en realidad)
+    lcd.setCursor(8, 1);
+    lcd.print("100.0");
+    lcd.setCursor(13, 1);
+    lcd.print("HR%");
+  }
+}
 
 
 void microSD () {
@@ -345,6 +401,23 @@ void microSD () {
   } else {
     // if the file didn't open, print an error:
     Serial.println("Error al abrir el archivo");
+    GrabacionERROR (); // en el caso que de error la lectura del archivo datalog, siempre se comrpueba reiniciando el equipo
+  }
+}
+
+void GrabacionERROR () {
+
+  unsigned long currentMillis_3 = millis();
+
+  if (currentMillis_3 - previousMillis_3 >= interval_3) {
+    previousMillis_3 = currentMillis_3;
+
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+    digitalWrite(LED_GRABACION, ledState);
   }
 }
 
