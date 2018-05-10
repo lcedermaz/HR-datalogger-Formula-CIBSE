@@ -99,6 +99,7 @@ float THumedoK;
 
 float pv;
 
+//----------------------------Configuración incial
 
 void setup()
 {
@@ -160,21 +161,16 @@ String fprint (int dato)
 
 void loop() {
 
-  sensors1.requestTemperatures();  // Se envía el comando para leer la temperatura
-  sensors2.requestTemperatures();  // Se envía el comando para leer la temperatura
+  sensors1.requestTemperatures();  // Se inicia el sensor 1
+  sensors2.requestTemperatures();  // Se inicia el sensor 2
 
   //------------------------------LLAMAMOS A LAS FUNCIONES
 
   unsigned long currentMillis_2 = millis();   // Conteo de tiempo para la interrupción
 
   if (currentMillis_2 - previousMillis_2 >= interval_2) {
-
     previousMillis_2 = currentMillis_2;
-
-    float TS = TemperaturaSeco();
-    float TH = TemperaturaHumedo();
-    float HR = HumedadRelativa ();
-
+    HumedadRelativa ();
   }
 
   //------------------------------MOSTRAMOS EN DISPLAY
@@ -182,7 +178,6 @@ void loop() {
   unsigned long currentMillis = millis();   // Conteo de tiempo para la interrupción
 
   if (currentMillis - previousMillis >= interval) {
-
     previousMillis = currentMillis;
     LCD_display ();
   }
@@ -192,38 +187,29 @@ void loop() {
   unsigned long currentMillis_1 = millis();   // Conteo de timepo para la interrupción
 
   if (currentMillis_1 - previousMillis_1 >= interval_1) {
-
     previousMillis_1 = currentMillis_1;
     microSD ();
   }
+}
+ 
+    //-------------Funciones-------------//
 
-  //------------------------------CALCULO DE TEMPERATURAS
+  void HumedadRelativa () {
 
-  //------------------------------bulbo seco
-  float TemperaturaSeco ()
-  {
-    TSeco = sensors1.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
-  }
+    //------------------------------Calculo Humedad Relativa--------------------------
 
-  //------------------------------bulbo húmedo
-  float TemperaturaHumedo ()
-  {
-    THumedo = sensors2.getTempCByIndex(0); //Se obtiene la temperatura en ºC d
-  }
+    TSeco = sensors1.getTempCByIndex(0);    // Sensor Bulbo Seco
+    THumedo = sensors2.getTempCByIndex(0);  // Sensor Bulbo Humedo
 
-  //------------------------------Calculo Humedad Relativa
+    // FORMULA CIBSE-Facilitada por Marcos
 
-  // FORMULA CIBSE-Facilitada por Marcos
-
-  // Public Function HRpsi(ByVal tBS As Double, ByVal tBH As Double, ByVal p As Double, ByVal Kpsi As Double)
-  // HRpsi = Humedad Relativa, calculada con método psicrométrico
-  // pv = Presión parcial de vapor
-  // Kpsi = Constante psicrométrica
-  // Ejemplos
-  //     6.66e-4     Sling - CIBSE Guide C 2007 (1.9) -> ********Se opta por este método********
-  //     7.99e-4     Screen - CIBSE Guide C 2007 (1.10)
-
-  float HumedadRelativa () {
+    // Public Function HRpsi(ByVal tBS As Double, ByVal tBH As Double, ByVal p As Double, ByVal Kpsi As Double)
+    // HRpsi = Humedad Relativa, calculada con método psicrométrico
+    // pv = Presión parcial de vapor
+    // Kpsi = Constante psicrométrica
+    // Ejemplos
+    //     6.66e-4     Sling - CIBSE Guide C 2007 (1.9) -> ********Se opta por este método********
+    //     7.99e-4     Screen - CIBSE Guide C 2007 (1.10)
 
     const float p = 101325; // Valor de la presión atmosférica, obtenido del excel. Promedio anual de la provincia de Santa Fe (Capital)
     const float Kpsi = 6.66e-4; // Metodo Sling, constante
@@ -295,7 +281,7 @@ void loop() {
       lcd.print("HR%");
     }
   }
-}
+
 
 void microSD () {
 
