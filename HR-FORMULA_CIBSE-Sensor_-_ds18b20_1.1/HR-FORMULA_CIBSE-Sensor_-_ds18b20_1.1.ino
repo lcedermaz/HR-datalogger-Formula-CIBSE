@@ -25,7 +25,6 @@ byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 int ledState = LOW ; // Estado inicial para el parpadeo del led indicador de grabación
 
 //--------------------RTC
-
 #include "RTClib.h"
 RTC_DS1307 RTC;
 #define DS1307_I2C_ADDRESS 0x68  // Dirección I2C 
@@ -86,7 +85,7 @@ const long interval = 50 ;// Se achico el tiempo para que se pueda ver el segund
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Datalogger)
 
 unsigned long previousMillis_1 = 0 ;
-const long interval_1 = 5000;
+const long interval_1 = 5000;   // 1800000 -> 30 min
 
 //------------------------------SETEO DE TIEMPOS DE REFRESCO (Cálculos)
 
@@ -149,7 +148,7 @@ void setup()
   delay(100);
   lcd.clear();
 
-  //----Iniciamos los sensores
+  //----Iniciamoes los sensores
 
   sensors1.begin();   //Se inicia el sensor 1
   sensors2.begin();   //Se inicia el sensor 2
@@ -214,25 +213,12 @@ void loop() {
   } else {
     digitalWrite (LED_GRABACION, HIGH);
   }
-  
   //------------------------------INICIAMOS LOS SENSORES
 
   sensors1.requestTemperatures();  // Se inicia el sensor 1
   sensors2.requestTemperatures();  // Se inicia el sensor 2
 
-
- //-----------------------------------------// 
- //------------TIEMPOS FUNCIONES------------//
- //-----------------------------------------// 
-
-  //------------------------------CALCULO HUMEDAD RELATIVA
-
-  unsigned long currentMillis_2 = millis();
-
-  if (currentMillis_2 - previousMillis_2 >= interval_2) {
-    previousMillis_2 = currentMillis_2;
-    HumedadRelativa ();
-  }
+  //------------------------------COMIENZO DE LAS FUNCIONES
 
   //------------------------------DISPLAY
 
@@ -253,9 +239,17 @@ void loop() {
   }
 }
 
-//-----------------------------------//
-//-------------FUNCIONES-------------//
-//-----------------------------------//
+  //------------------------------CALCULO HUMEDAD RELATIVA
+
+  unsigned long currentMillis_2 = millis();
+
+  if (currentMillis_2 - previousMillis_2 >= interval_2) {
+    previousMillis_2 = currentMillis_2;
+    HumedadRelativa ();
+  }
+
+
+//-------------Funciones-------------//
 
 void HumedadRelativa () {
 
@@ -300,19 +294,21 @@ void HumedadRelativa () {
 
 void LCD_display () {
 
-  //------------------------------HORA
+  //------------------------------MOSTRAR HORA
 
-  lcd.setCursor(9, 0);
+  lcd.setCursor(9, 0); // En caso de habilitar el segundero atrasar hasta el 8 o más
   lcd.print(fprint(hour)); //imprime hora
   lcd.print(':');
   lcd.print(fprint(minute)); //imprime minutos
-
-  //------------------------------Sensores de Temperatura
+  //lcd.print(':');
+ // lcd.print(fprint(second)); //imprime segundos
+  
+  //------------------------------MOSTRAR VALORES TERMISTOR
   //------------------------------bulbo seco
 
   if (TSeco < 50) {       // si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
     lcd.setCursor(0, 0);
-    lcd.print(TSeco);
+    lcd.print(TSeco, 1); // le dejamos una sola décima
     lcd.print("Ts ");
   } else {
     lcd.setCursor(0, 0);
@@ -323,14 +319,14 @@ void LCD_display () {
 
   if (THumedo < 50) {     //si es mayor a 50, OL, se hace por que se corre la letra TH o TS cuando empieza a contar para el promedio
     lcd.setCursor(0, 1);
-    lcd.print(THumedo);
+    lcd.print(THumedo, 1); // le dejamos una sola décima
     lcd.print("Th ");
   } else {
     lcd.setCursor(0, 1);
     lcd.print("OL");
     lcd.print("Th ");
   }
-  //------------------------------Humedad Relativa
+  //------------------------------humedad Relativa
 
   if (HR < 100) {
     lcd.setCursor(8, 1);
@@ -348,7 +344,7 @@ void LCD_display () {
 
 void microSD () {
 
- //----------------------------------------- RTC
+  //------------------------------LECTURA RTC E INICIAMOS SD
 
   // -- Proceso de Lectura --
   Wire.beginTransmission(DS1307_I2C_ADDRESS);   // Linea IC2 en modo escitura
@@ -363,12 +359,12 @@ void microSD () {
   month      = bcdToDec(Wire.read());
   year       = bcdToDec(Wire.read());
   myFile = SD.open("datalog.csv", FILE_WRITE);//abrimos  el archivo
- 
- //----------------------------------------- MICROSD
- 
+
   if (myFile) {
 
     Serial.print("Escribiendo SD: ");
+    //-----------------------------------------ESCRITURA MICROSD
+
     myFile.print(fprint(dayOfMonth)); // Día
     myFile.print("/");
     myFile.print(fprint(month)); // Mes
@@ -386,7 +382,7 @@ void microSD () {
     myFile.println(HR);
     myFile.close(); //cerramos el archivo
 
-    //-----------------------------------------MONITOR SERIE
+    //-----------------------------------------MONITOR SERIAL
 
     Serial.print(F("Fecha "));
     Serial.print(fprint(dayOfMonth)); // Días
