@@ -237,7 +237,7 @@ void loop() {
     previousMillis_1 = currentMillis_1;
     microSD ();
   }
-}
+
 
   //------------------------------CALCULO HUMEDAD RELATIVA
 
@@ -247,7 +247,7 @@ void loop() {
     previousMillis_2 = currentMillis_2;
     HumedadRelativa ();
   }
-
+}
 
 //-------------Funciones-------------//
 
