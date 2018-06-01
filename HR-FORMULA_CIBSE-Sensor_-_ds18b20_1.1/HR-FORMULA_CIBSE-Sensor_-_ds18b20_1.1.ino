@@ -25,7 +25,7 @@ byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 int ledState = LOW ; // Estado inicial para el parpadeo del led indicador de grabación
 
 //--------------------RTC
-#include "RTClib.h"
+#include <RTClib.h>
 RTC_DS1307 RTC;
 #define DS1307_I2C_ADDRESS 0x68  // Dirección I2C 
 
@@ -148,17 +148,17 @@ void setup()
   delay(100);
   lcd.clear();
 
-  //----Iniciamoes los sensores
+  //------------------------------ Inicio sensores
 
-  sensors1.begin();   //Se inicia el sensor 1
-  sensors2.begin();   //Se inicia el sensor 2
+  sensors1.begin();  
+  sensors2.begin();   
 
-  //----Configuramos LED indicador
+  //------------------------------ Configuramos LED indicador
 
   pinMode(LED_GRABACION, OUTPUT) ;
   digitalWrite(LED_GRABACION, LOW);
 
-  // -------- CONFIG - SD
+  //------------------------------  inicio MicroSD
 
   Serial.begin(9600);
   Serial.print(F("Iniciando SD ..."));
@@ -179,23 +179,42 @@ void setup()
       Serial.println(F("Error creando el archivo datalog.csv"));
     }
   }
+
+  //------------------------------Iniciamos RTC y MicroSD ----> VER SI INICIA AL INICIO!!!!
+
+  // -- Proceso de Lectura --
+  Wire.beginTransmission(DS1307_I2C_ADDRESS);   // Linea IC2 en modo escitura
+  Wire.write((byte)0x00);                       // Setea el punto de registro a(0x00)
+  Wire.endTransmission();                       // Final de la escritura de transmición
+  Wire.requestFrom(DS1307_I2C_ADDRESS, 7);      // Abre I2C en modo de envío
+  second     = bcdToDec(Wire.read() & 0x7f);    // Lee 7 bytes de datos
+  minute     = bcdToDec(Wire.read());
+  hour       = bcdToDec(Wire.read() & 0x3f);
+  dayOfWeek  = bcdToDec(Wire.read());
+  dayOfMonth = bcdToDec(Wire.read());
+  month      = bcdToDec(Wire.read());
+  year       = bcdToDec(Wire.read());
+  myFile = SD.open("datalog.csv", FILE_WRITE);//abrimos  el archivo
+
 }
 
-// -- Conversor BCD ==> DECIMAL --
-byte bcdToDec(byte val)
-{
-  return ( (val / 16 * 10) + (val % 16) );
-}
+ //------------------------------  Conversor BCD ==> DECIMAL
 
-// -- Imprime con formato de 2 dígitos
-String fprint (int dato)
-{
-  String retorno = String(dato);
-  if (retorno.length() < 2)
-    retorno = "0" + retorno;
-  return retorno;
+    byte bcdToDec(byte val)
+    {
+      return ( (val / 16 * 10) + (val % 16) );
+    }
+    
+    // -- Imprime con formato de 2 dígitos
+    
+    String fprint (int dato)
+    {
+      String retorno = String(dato);
+      if (retorno.length() < 2)
+        retorno = "0" + retorno;
+      return retorno;
 
-  // Configuración para que inicie promedio
+  //------------------------------ Inicio Promedio
 
   for (int thisReadingBS = 0; thisReadingBS < numReadingsBS; thisReadingBS++)  // Promedio Bulbo Seco
     readingsBS[thisReadingBS] = 0;
@@ -215,8 +234,8 @@ void loop() {
   }
   //------------------------------INICIAMOS LOS SENSORES
 
-  sensors1.requestTemperatures();  // Se inicia el sensor 1
-  sensors2.requestTemperatures();  // Se inicia el sensor 2
+  sensors1.requestTemperatures();  
+  sensors2.requestTemperatures();  
 
   //------------------------------COMIENZO DE LAS FUNCIONES
 
@@ -343,22 +362,6 @@ void LCD_display () {
 
 
 void microSD () {
-
-  //------------------------------LECTURA RTC E INICIAMOS SD
-
-  // -- Proceso de Lectura --
-  Wire.beginTransmission(DS1307_I2C_ADDRESS);   // Linea IC2 en modo escitura
-  Wire.write((byte)0x00);                       // Setea el punto de registro a(0x00)
-  Wire.endTransmission();                       // Final de la escritura de transmición
-  Wire.requestFrom(DS1307_I2C_ADDRESS, 7);      // Abre I2C en modo de envío
-  second     = bcdToDec(Wire.read() & 0x7f);    // Lee 7 bytes de datos
-  minute     = bcdToDec(Wire.read());
-  hour       = bcdToDec(Wire.read() & 0x3f);
-  dayOfWeek  = bcdToDec(Wire.read());
-  dayOfMonth = bcdToDec(Wire.read());
-  month      = bcdToDec(Wire.read());
-  year       = bcdToDec(Wire.read());
-  myFile = SD.open("datalog.csv", FILE_WRITE);//abrimos  el archivo
 
   if (myFile) {
 
